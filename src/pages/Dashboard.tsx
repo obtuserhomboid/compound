@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { useHabitStore } from '../store/habitStore';
-import { HABIT_TEMPLATES, CATEGORY_COLORS } from '../lib/types';
+import { HABIT_TEMPLATES } from '../lib/types';
 import { today, calculateProjections, toCompoundingMetric, generateBranchData } from '../lib/compound';
 import BranchingTimeline from '../components/BranchingTimeline';
 import LogModal from '../components/LogModal';
