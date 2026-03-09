@@ -12,6 +12,7 @@ interface HabitState {
   // Actions
   addHabit: (habit: Omit<Habit, 'id' | 'createdAt'>) => void;
   addHabitFromTemplate: (template: HabitTemplate, goal?: number) => void;
+  updateHabit: (id: string, updates: Partial<Pick<Habit, 'name' | 'dailyGoal' | 'unit' | 'compoundingMetric'>>) => void;
   removeHabit: (id: string) => void;
   logHabit: (habitId: string, value: number, completed: boolean) => void;
   getLogsForHabit: (habitId: string) => HabitLog[];
@@ -51,6 +52,12 @@ export const useHabitStore = create<HabitState>()(
           createdAt: today(),
         };
         set(state => ({ habits: [...state.habits, newHabit] }));
+      },
+
+      updateHabit: (id, updates) => {
+        set(state => ({
+          habits: state.habits.map(h => h.id === id ? { ...h, ...updates } : h),
+        }));
       },
 
       removeHabit: (id) => {

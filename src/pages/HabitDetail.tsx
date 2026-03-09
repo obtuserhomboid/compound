@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { useHabitStore } from '../store/habitStore';
 import { generateBranchData, calculateProjections, toCompoundingMetric } from '../lib/compound';
@@ -22,13 +22,18 @@ const RANGE_DAYS: Record<TimeRange, number> = {
 export default function HabitDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { habits, logs, removeHabit, getTodayLog } = useHabitStore();
+  const { habits, logs, removeHabit, updateHabit, getTodayLog } = useHabitStore();
   const [range, setRange] = useState<TimeRange>('30d');
   const [showShare, setShowShare] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const habit = habits.find(h => h.id === id);
   if (!habit) return <div style={{ padding: 40, color: '#6B7280' }}>Habit not found.</div>;
+
+  const [editName, setEditName] = useState(habit.name);
+  const [editGoal, setEditGoal] = useState(habit.dailyGoal.toString());
+  const [editUnit, setEditUnit] = useState(habit.unit);
 
   const habitLogs = logs.filter(l => l.habitId === habit.id);
   const template = HABIT_TEMPLATES.find(t => t.name === habit.name);
@@ -55,6 +60,24 @@ export default function HabitDetail() {
     return streak;
   }, [habitLogs]);
 
+  const handleSaveEdit = () => {
+    const goal = parseFloat(editGoal);
+    if (!editName.trim() || !goal || goal <= 0) return;
+    updateHabit(habit.id, {
+      name: editName.trim(),
+      dailyGoal: goal,
+      unit: editUnit.trim() || habit.unit,
+    });
+    setEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(habit.name);
+    setEditGoal(habit.dailyGoal.toString());
+    setEditUnit(habit.unit);
+    setEditing(false);
+  };
+
   const handleDelete = () => {
     if (confirm(`Delete "${habit.name}"? This cannot be undone.`)) {
       removeHabit(habit.id);
@@ -64,7 +87,7 @@ export default function HabitDetail() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 32 }}>{icon}</span>
@@ -78,11 +101,60 @@ export default function HabitDetail() {
           {!todayLog && (
             <button className="btn btn-primary" onClick={() => setShowLog(true)}>Log Today</button>
           )}
+          <button className="btn btn-secondary" onClick={() => setEditing(!editing)}>
+            {editing ? 'Cancel' : 'Edit'}
+          </button>
           <button className="btn btn-secondary" onClick={() => setShowShare(!showShare)}>
             {showShare ? 'Hide Card' : 'Share'}
           </button>
         </div>
       </div>
+
+      {/* Edit panel */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            className="card"
+            style={{ marginBottom: 24 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Edit Habit</h3>
+            <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 16 }}>
+              Changing your daily goal redraws the optimal line. Past logs stay the same.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label>Name</label>
+                <input value={editName} onChange={e => setEditName(e.target.value)} />
+              </div>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label>Daily Goal</label>
+                <input
+                  type="number"
+                  value={editGoal}
+                  onChange={e => setEditGoal(e.target.value)}
+                  min="1"
+                  step="any"
+                />
+              </div>
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label>Unit</label>
+                <input value={editUnit} onChange={e => setEditUnit(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-primary btn-sm" onClick={handleSaveEdit}>
+                Save — Redraw Line
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit}>
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stats */}
       <div className="stat-row">
