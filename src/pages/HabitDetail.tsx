@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { useHabitStore } from '../store/habitStore';
-import { generateBranchData, calculateProjections, toCompoundingMetric } from '../lib/compound';
+import { generateBranchData, calculateProjections, toCompoundingMetric, calculateCatchUp } from '../lib/compound';
 import { HABIT_TEMPLATES } from '../lib/types';
 import BranchingTimeline from '../components/BranchingTimeline';
 import ProjectionTable from '../components/ProjectionTable';
@@ -171,6 +171,48 @@ export default function HabitDetail() {
           <div className="stat-value skip">{toCompoundingMetric(habit, projections.year1.gap)}</div>
         </div>
       </div>
+
+      {/* Catch-up card */}
+      {(() => {
+        const catchUp = calculateCatchUp(habit, habitLogs);
+        if (catchUp.deficit <= 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Recovery Plan</h3>
+            <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+              You're {Math.round(catchUp.deficit).toLocaleString()} {habit.unit} behind optimal with {catchUp.daysRemaining} days left this year.
+            </p>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div style={{
+                flex: 1,
+                padding: '16px',
+                background: 'rgba(255, 184, 48, 0.06)',
+                border: '1px solid rgba(255, 184, 48, 0.15)',
+                borderRadius: 10,
+              }}>
+                <div className="stat-label">To catch up by Dec 31</div>
+                <div className="mono" style={{ fontSize: 22, fontWeight: 700, color: '#FFB830', marginTop: 4 }}>
+                  {Math.ceil(catchUp.dailyToRecover).toLocaleString()} {habit.unit}
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>per day average</div>
+              </div>
+              <div style={{
+                flex: 1,
+                padding: '16px',
+                background: 'rgba(255, 68, 68, 0.06)',
+                border: '1px solid rgba(255, 68, 68, 0.15)',
+                borderRadius: 10,
+              }}>
+                <div className="stat-label">If you skip tomorrow too</div>
+                <div className="mono" style={{ fontSize: 22, fontWeight: 700, color: '#FF4444', marginTop: 4 }}>
+                  {Math.ceil(catchUp.dailyIfSkipTomorrow).toLocaleString()} {habit.unit}
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>per day average</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Branching Timeline */}
       <div className="card" style={{ marginBottom: 24 }}>

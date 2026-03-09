@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { useHabitStore } from '../store/habitStore';
 import { HABIT_TEMPLATES } from '../lib/types';
-import { today, calculateProjections, toCompoundingMetric, generateBranchData } from '../lib/compound';
+import { today, calculateProjections, toCompoundingMetric, generateBranchData, calculateCatchUp } from '../lib/compound';
 import BranchingTimeline from '../components/BranchingTimeline';
 import LogModal from '../components/LogModal';
 
@@ -62,6 +62,8 @@ export default function Dashboard() {
           const completedDays = habitLogs.filter(l => l.completed).length;
           const totalDays = habitLogs.length || 1;
           const consistency = Math.round((completedDays / totalDays) * 100);
+          const catchUp = calculateCatchUp(habit, habitLogs);
+          const isBehind = catchUp.deficit > 0;
 
           return (
             <motion.div
@@ -153,6 +155,44 @@ export default function Dashboard() {
                   </span>
                 </div>
               </div>
+
+              {/* Catch-up callout */}
+              {isBehind && (
+                <div style={{
+                  display: 'flex',
+                  gap: 16,
+                  padding: '0 20px 12px',
+                  fontSize: 12,
+                  fontFamily: 'DM Mono, monospace',
+                }}>
+                  <div style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    background: 'rgba(255, 184, 48, 0.06)',
+                    border: '1px solid rgba(255, 184, 48, 0.15)',
+                    borderRadius: 8,
+                  }}>
+                    <div style={{ color: '#6B7280', marginBottom: 2 }}>TO CATCH UP BY DEC 31</div>
+                    <span style={{ color: '#FFB830', fontSize: 15, fontWeight: 600 }}>
+                      {Math.ceil(catchUp.dailyToRecover).toLocaleString()} {habit.unit}
+                    </span>
+                    <span style={{ color: '#6B7280' }}> /day avg</span>
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    background: 'rgba(255, 68, 68, 0.06)',
+                    border: '1px solid rgba(255, 68, 68, 0.15)',
+                    borderRadius: 8,
+                  }}>
+                    <div style={{ color: '#6B7280', marginBottom: 2 }}>IF YOU SKIP TOMORROW</div>
+                    <span style={{ color: '#FF4444', fontSize: 15, fontWeight: 600 }}>
+                      {Math.ceil(catchUp.dailyIfSkipTomorrow).toLocaleString()} {habit.unit}
+                    </span>
+                    <span style={{ color: '#6B7280' }}> /day avg</span>
+                  </div>
+                </div>
+              )}
 
               {/* Branching timeline chart */}
               <div style={{ padding: '0 8px 8px' }}>

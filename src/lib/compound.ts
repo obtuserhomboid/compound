@@ -144,6 +144,44 @@ export function calculateProjections(
 }
 
 /**
+ * Calculate the daily average needed to catch up to the optimal line
+ * by a target date (default: end of year).
+ *
+ * Also calculates what happens if you skip one more day.
+ */
+export function calculateCatchUp(
+  habit: Habit,
+  logs: HabitLog[]
+): { dailyToRecover: number; dailyIfSkipTomorrow: number; daysRemaining: number; deficit: number } {
+  const now = new Date();
+  const yearEnd = new Date(now.getFullYear(), 11, 31);
+  const daysSoFar = logs.length || 1;
+  const daysRemaining = differenceInDays(yearEnd, now);
+
+  if (daysRemaining <= 0) {
+    return { dailyToRecover: habit.dailyGoal, dailyIfSkipTomorrow: habit.dailyGoal, daysRemaining: 0, deficit: 0 };
+  }
+
+  // What the optimal total should be by year end
+  const optimalTotal = habit.dailyGoal * (daysSoFar + daysRemaining);
+
+  // What's actually been logged so far
+  const actualTotal = logs.filter(l => l.completed).reduce((sum, l) => sum + l.value, 0);
+
+  // Deficit
+  const deficit = optimalTotal - actualTotal;
+
+  // Daily avg needed over remaining days to close the gap
+  const dailyToRecover = Math.max(0, deficit / daysRemaining);
+
+  // If tomorrow is also skipped, one fewer day and same deficit + another day's goal missed
+  const deficitIfSkip = deficit + habit.dailyGoal;
+  const dailyIfSkipTomorrow = Math.max(0, deficitIfSkip / Math.max(1, daysRemaining - 1));
+
+  return { dailyToRecover, dailyIfSkipTomorrow, daysRemaining, deficit };
+}
+
+/**
  * Generate a skip cost message.
  */
 export function getSkipCost(habit: Habit): string {
